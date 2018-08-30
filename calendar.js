@@ -72,11 +72,13 @@
         $.extend(Calendar.prototype,{
             "$el":null,
             "$header":null,
-            "firstShow":true,   // 是否为第一次显示控件
             "isLoading":true,  // 是否正在加载，默认true
-            "cancelMethod":null,    // 点击取消的触发的事件
-            "submitMethod":null,    // 点击确定触发的时间
             "isAnimate":true,   // 是否需要动画效果，默认为true
+            "isHoliday":"", // 是否需要节假日，如果需要，请传入获取节假日的地址，默认是无
+            "isSingle":false,   // 是否为单选模式，及点击一个日期并将这个日期作为开始和截止日期，默认为false
+            "isReset":false,    // 是否需要重置控件（每次用户点击取消按钮是否需要重置到打开控件前的状态，默认为false）
+            "isChange":false,    // 开始日期或结束日期是否有变动，默认为false
+            "firstShow":true,   // 是否为第一次显示控件
             "startDate":"", // 开始日期(格式yyyy-MM-dd)
             "endDate":"",   // 截止日期，不传截止日期默认为开始日期之后的7天为截止日期，传1则表示和开始日期相同(格式yyyy-MM-dd)
             "templateList":{    // 模板
@@ -84,15 +86,15 @@
                 "daysTemp":"daysTemp"   // 日期模板
             },
             "maxDate":null, // 最大可选择日期，默认为无限制
-            "isSingle":false,   // 是否为单选模式，及点击一个日期并将这个日期作为开始和截止日期，默认为false
             "choiceModel":1,    // 日期选择模式
             "haveCancel":true, // 是否需要取消按钮
             "haveSubmit":true,  // 是否需要确定按钮
             "defaultStartDate":"",  // 默认开始日期（用户点击取消按钮，重置到上一次的开始日期）
             "defaultEndDate":"",    // 默认结束日期（用户点击取消按钮，重置到上一次的结束日期）
-            "isReset":false,    // 是否需要重置控件（每次用户点击取消按钮是否需要重置到打开控件前的状态，默认为false）
             "shadeEffective":false, // 点击阴影部分是否有效（相当于点击取消按钮）
-            "isChange":false,    // 开始日期或结束日期是否有变动，默认为false
+            "format":"YYYY-M-d",    // 默认为YYYY-M-d
+            "cancelMethod":null,    // 点击取消的触发的事件
+            "submitMethod":null,    // 点击确定触发的事件
             "load":function(){} // load函数，当日期控件加载完毕就会执行里面的函数
         });
         
@@ -145,7 +147,7 @@
                 // 是否需要取消按钮
                 this.$el.find(".btn-cancel").hide();
             };
-            if(!this.haveSubmit) {
+            if(!this.haveSubmit || this.choiceModel == 2) {
                 // 是否需要确定按钮
                 this.$el.find(".btn-submit").hide();
             };
@@ -156,7 +158,9 @@
             // 看是否需要限制日期
             this.setMaxDate(this.maxDate);
             // 获取节假日
-            // this.getHoliday();
+            if(this.isHoliday) {
+                this.getHoliday();
+            };
             // 事件绑定
             this.bindEvent();
             // 仅绑定一次的事件
@@ -193,12 +197,21 @@
             }).bind(this));
 
             // 确定按钮
-            this.$header.find(".btn-submit").bind("touchend",(function(){
+            this.$header.find(".btn-submit").bind("click",(function(){
                 if(this.submitMethod) {
                     var $start = this.$el.find(".txtContent .start"),
-                    $end = this.$el.find(".txtContent .end");
+                    $end = this.$el.find(".txtContent .end"),
+                    start = $start.parents(".date").attr("years") + "-" + $start.attr("day"),
+                    end = $end.parents(".date").attr("years") + "-" + $end.attr("day");
 
-                    this.submitMethod($start.parents(".date").attr("years") + "-" + $start.attr("day"),$end.parents(".date").attr("years") + "-" + $end.attr("day"),this);
+                    switch(this.format) {
+                        case "YYYY-MM-dd":
+                            start = start.replace(/(?<=-)([0-9])(?=-)|(?<=-)([0-9])$/g,"0$1$2");
+                            end = end.replace(/(?<=-)([0-9])(?=-)|(?<=-)([0-9])$/g,"0$1$2");
+                        break;
+                    };
+
+                    this.submitMethod(start,end,this);
                 };
                 this.close();
             }).bind(this));
@@ -259,7 +272,7 @@
             } else {
                 _ajaxFun({
                     type: 'POST',
-                    url: _domainName + '',
+                    url: this.isHoliday,
                     data: {},
                     tag:365,
                     dataType: 'json',
@@ -566,21 +579,25 @@
             this.defaultStartDate = this.startDate;
             this.defaultEndDate = this.endDate;
 
-            $(".m-calendar .shade").fadeIn(600);
-            $(".m-calendar .content").css({
-                "top":"10%",
-                "opacity":0
-            });
-            $(".m-calendar .content").show();
-            setTimeout(function(){
+            if(this.isAnimate) {
+                $(".m-calendar .shade").fadeIn(600);
                 $(".m-calendar .content").css({
-                    "top":"50%",
-                    "opacity":1
+                    "top":"10%",
+                    "opacity":0
                 });
-            },200);
+                $(".m-calendar .content").show();
+                setTimeout(function(){
+                    $(".m-calendar .content").css({
+                        "top":"50%",
+                        "opacity":1
+                    });
+                },200);
 
-            // 优化当日期数据过多，过渡效果卡顿的问题
-            $(".txtContent").fadeIn(200);
+                // 优化当日期数据过多，过渡效果卡顿的问题
+                $(".txtContent").fadeIn(200);
+            } else {
+                $(".m-calendar .shade,.m-calendar .content").show();
+            };
             
             // 滚动到当天的月份
             if(this.firstShow) {
@@ -599,14 +616,18 @@
             // 关闭是先隐藏日期数据，不然当日期数据过多，过渡动画会卡顿
             $(".txtContent").hide();
             
-            $(".m-calendar .content").css({
-                "top":"10%",
-                "opacity":0
-            });
-            $(".m-calendar .shade").fadeOut(600);
-            setTimeout(function(){
-                $(".m-calendar .content").hide();
-            },600);
+            if(this.isAnimate) {
+                $(".m-calendar .content").css({
+                    "top":"10%",
+                    "opacity":0
+                });
+                $(".m-calendar .shade").fadeOut(600);
+                setTimeout(function(){
+                    $(".m-calendar .content").hide();
+                },600);
+            } else {
+                $(".m-calendar .shade,.m-calendar .content").hide();
+            };
         };
         /**
          * 是否设置为单选模式
