@@ -86,7 +86,8 @@
             "defaultEndDate":"",    // 默认结束日期（用户点击取消按钮，重置到上一次的结束日期）
             "isReset":false,    // 是否需要重置控件（每次用户点击取消按钮是否需要重置到打开控件前的状态，默认为false）
             "shadeEffective":false, // 点击阴影部分是否有效（相当于点击取消按钮）
-            "isChange":false    // 开始日期或结束日期是否有变动，默认为false
+            "isChange":false,    // 开始日期或结束日期是否有变动，默认为false
+            "load":function(){} // load函数，当日期控件加载完毕就会执行里面的函数
         });
         
         /**
@@ -154,6 +155,8 @@
             this.bindEvent();
             // 仅绑定一次的事件
             this.bindEventByOne();
+            // 加载完毕之后执行加载完毕函数
+            this.load();
         };
         /**
          * 事件绑定
@@ -535,7 +538,10 @@
          */
         Calendar.prototype.show = function(start,end){
             if(!this.$el) {
-                alert("日期控件加载中，请稍后再试!");
+                this.load = (function(){
+                    this.show(start,end);
+                }.bind(this));
+                return;
             };
 
             if(start) {
