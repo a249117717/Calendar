@@ -61,7 +61,13 @@
                 this.endDate = this.getStepDate(this.startDate,7);
             };
 
-            this.fetch();
+            // 单例，不允许多次new日历控件
+            if(window.CalendarTemp) {
+                return window.CalendarTemp;
+            } else {
+                this.fetch();
+                window.CalendarTemp = this;
+            };
         };
         $.extend(Calendar.prototype,{
             "$el":null,
