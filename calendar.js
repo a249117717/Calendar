@@ -92,7 +92,7 @@
             "defaultStartDate":"",  // 默认开始日期（用户点击取消按钮，重置到上一次的开始日期）
             "defaultEndDate":"",    // 默认结束日期（用户点击取消按钮，重置到上一次的结束日期）
             "shadeEffective":false, // 点击阴影部分是否有效（相当于点击取消按钮）
-            "format":"YYYY-M-d",    // 默认为YYYY-M-d
+            "format":"yyyy-M-d",    // 默认为YYYY-M-d
             "cancelMethod":null,    // 点击取消的触发的事件
             "submitMethod":null,    // 点击确定触发的事件
             "load":function(){} // load函数，当日期控件加载完毕就会执行里面的函数
@@ -200,18 +200,9 @@
             this.$header.find(".btn-submit").bind("click",(function(){
                 if(this.submitMethod) {
                     var $start = this.$el.find(".txtContent .start"),
-                    $end = this.$el.find(".txtContent .end"),
-                    start = $start.parents(".date").attr("years") + "-" + $start.attr("day"),
-                    end = $end.parents(".date").attr("years") + "-" + $end.attr("day");
+                    $end = this.$el.find(".txtContent .end");
 
-                    switch(this.format) {
-                        case "YYYY-MM-dd":
-                            start = start.replace(/(?<=-)([0-9])(?=-)|(?<=-)([0-9])$/g,"0$1$2");
-                            end = end.replace(/(?<=-)([0-9])(?=-)|(?<=-)([0-9])$/g,"0$1$2");
-                        break;
-                    };
-
-                    this.submitMethod(start,end,this);
+                    this.submitMethod(this.formatDate($start.parents(".date").attr("years") + "-" + $start.attr("day")),this.formatDate($end.parents(".date").attr("years") + "-" + $end.attr("day")),this);
                 };
                 this.close();
             }).bind(this));
@@ -564,10 +555,10 @@
             };
 
             if(start) {
-                start = this.formatDate(start);
+                start = this.formatDate(start,"yyyy-M-d");
                 this.$el.find(".include").removeClass("include");
                 if(end) {
-                    this.setChoiceArea(start,this.formatDate(end));
+                    this.setChoiceArea(start,this.formatDate(end,"yyyy-M-d"));
                 } else {
                     this.setChoiceArea(start,start);
                 };
@@ -639,10 +630,33 @@
         /**
          * 格式化成日期控件需要的格式
          * @param {[string]} date [日期]
+         * @param {[boolean]} fmt [格式化格式，如果没传则默认使用this.for]
          */
-        Calendar.prototype.formatDate = function(date){
-            var date = date.split("-");
-            return date[0] + "-" + parseInt(date[1]) + "-" + parseInt(date[2]);
+        Calendar.prototype.formatDate = function(date,fmt){
+            if(typeof date == "string") {
+                date = new Date(date);
+            };
+            if(fmt === void 0) { fmt = this.format };
+
+            var o = {   
+                "M+" : date.getMonth()+1,                 //月份   
+                "d+" : date.getDate(),                    //日   
+                "h+" : date.getHours(),                   //小时   
+                "m+" : date.getMinutes(),                 //分   
+                "s+" : date.getSeconds(),                 //秒   
+                "q+" : Math.floor((date.getMonth()+3)/3), //季度   
+                "S"  : date.getMilliseconds()             //毫秒   
+            };
+
+            if(/(y+)/.test(fmt)) {
+                fmt=fmt.replace(RegExp.$1, (date.getFullYear()+"").substr(4 - RegExp.$1.length));
+            };
+            for(var k in o) {
+                if(new RegExp("("+ k +")").test(fmt)) {
+                    fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));   
+                };
+            }
+            return fmt;
         };
         /**
          * 设置最大可选择日期
