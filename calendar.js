@@ -179,7 +179,7 @@
             var self = this;
 
             // 取消按钮
-            this.$header.find(".btn-cancel").bind("click",(function(){
+            this.$header.find(".btn-cancel").bind("touchend",(function(){
                 if(!this.isChange) {    // 用户未改变日期，直接退出控件，不做任何操作
                     this.close();
                     return;
@@ -197,7 +197,7 @@
             }).bind(this));
 
             // 确定按钮
-            this.$header.find(".btn-submit").bind("click",(function(){
+            this.$header.find(".btn-submit").bind("touchend",(function(){
                 if(this.submitMethod) {
                     var $start = this.$el.find(".txtContent .start"),
                     $end = this.$el.find(".txtContent .end");
@@ -208,7 +208,7 @@
             }).bind(this));
 
             // 点击事件
-            this.$el.find(".txtContent").on("click",".haveValue",function(){
+            this.$el.find(".txtContent").on("touchend",".haveValue",function(){
                 var $this = $(this),
                 date = "";
 
@@ -237,7 +237,7 @@
             if(this.shadeEffective) {
                 // 点击阴影部分
                 this.$el.find(".shade").bind("touchend",(function(){
-                    this.$header.find(".btn-cancel").click();
+                    this.$header.find(".btn-cancel").trigger("touchend");
                 }).bind(this));
             };
 
